@@ -75,7 +75,7 @@ Copy `.env.example` to `.env` and fill in your details.
 
 ```bash
 # Make an appointment booking call
-python gpt-5-test.py
+python jeeves.py
 ```
 
 ## 📁 Output Structure
@@ -196,7 +196,7 @@ Channels: 2
 ## 🏗️ System Architecture
 
 ```
-Configuration (.env) → gpt-5-test.py → Call Logs (calls/folder/)
+Configuration (.env) → jeeves.py → Call Logs (calls/folder/)
                             ↓
                     Twilio SIP + PJSIP
                             ↓
@@ -206,7 +206,7 @@ Configuration (.env) → gpt-5-test.py → Call Logs (calls/folder/)
 ```
 
 **Core Files:**
-- `gpt-5-test.py` - Main application script
+- `jeeves.py` - Main application script
 - `get-recordings.py` - Download call recordings
 - `.env` - Configuration (copy from `.env.example`)
 - `.gitignore` - Excludes logs and recordings from git
@@ -234,7 +234,7 @@ Configuration (.env) → gpt-5-test.py → Call Logs (calls/folder/)
 
 ```bash
 # Run immediately
-python gpt-5-test.py
+python jeeves.py
 ```
 
 ### Check Results
