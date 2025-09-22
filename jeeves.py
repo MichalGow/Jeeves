@@ -113,18 +113,18 @@ def wait_for_call_time():
     if CALL_TIME.upper() == "NOW":
         log_info("[SCHEDULE] Call time is NOW, proceeding immediately")
         return
-    
+
     try:
         from datetime import datetime, timezone
         import zoneinfo
-        
+
         # Parse timezone
         try:
             tz = zoneinfo.ZoneInfo(TIMEZONE)
         except:
             log_info(f"[SCHEDULE] Invalid timezone '{TIMEZONE}', using UTC")
             tz = timezone.utc
-        
+
         # Parse call time - format: DD/MM/YY:HH:MM
         try:
             call_dt = datetime.strptime(CALL_TIME, "%d/%m/%y:%H:%M")
@@ -134,33 +134,33 @@ def wait_for_call_time():
             log_info(f"[SCHEDULE] Invalid CALL_TIME format '{CALL_TIME}', expected DD/MM/YY:HH:MM")
             log_info("[SCHEDULE] Proceeding immediately")
             return
-        
+
         # Get current time in the same timezone
         now = datetime.now(tz)
-        
+
         if call_dt <= now:
             log_info(f"[SCHEDULE] Scheduled time {call_dt} is in the past, proceeding immediately")
             return
-        
+
         # Calculate wait time
         wait_seconds = (call_dt - now).total_seconds()
         log_info(f"[SCHEDULE] Waiting until {call_dt} ({TIMEZONE}) - {wait_seconds:.0f} seconds")
-        
+
         # Wait until scheduled time
         while datetime.now(tz) < call_dt:
             remaining = (call_dt - datetime.now(tz)).total_seconds()
             if remaining <= 0:
                 break
-            
+
             # Log countdown every minute
             if remaining > 60 and int(remaining) % 60 == 0:
                 minutes_left = int(remaining // 60)
                 log_info(f"[SCHEDULE] {minutes_left} minutes until call time")
-            
+
             time.sleep(min(10, remaining))  # Check every 10 seconds or remaining time
-        
+
         log_info("[SCHEDULE] Call time reached, proceeding with call")
-        
+
     except Exception as e:
         log_info(f"[SCHEDULE] Error parsing call time: {e}")
         log_info("[SCHEDULE] Proceeding immediately")
@@ -179,8 +179,7 @@ class OpenAIRealtimeClient:
         self.closing = False  # Set true when application logic wants to end
         # DTMF sender callback
         self._send_dtmf = None
-        # Goodbye handling - wait for audio to finish before ending
-        self.goodbye_detected = False
+        # Audio timing tracking
         self.last_audio_chunk_time = time.monotonic()
 
     async def connect(self):
@@ -263,7 +262,10 @@ Your task:
 4) Keep a professional, courteous British tone.
 5) Remember, you are booking an appointment for {patient_name}. You just need the GP to confirm the date and time.
 6) You do not assist GP practice, you assist the patient. So do not offer alternative times or assist with booking.
-7) Thank them and say goodbye once booking is agreed or they decline.
+7) Ensure you know both date and time. If you are offered to choose yourself, choose the first available time and date and tell it to GP.
+8) End the call appropriately when the conversation reaches a natural conclusion.
+
+The conversation will end naturally when the GP practice ends the call or after a period of silence.
 
 DTMF/IVR Handling:
 - If you hear an automated menu or IVR asking for a key press (e.g., "Press 1 for appointments"):
@@ -329,11 +331,6 @@ DTMF/IVR Handling:
                 clean_text = DTMF_TAG.sub("", text).strip()
                 if clean_text:
                     log_conversation("JEEVES", clean_text)
-
-                    # Check for goodbye in completed transcript
-                    if "goodbye" in clean_text.lower():
-                        log_info("[CONVERSATION] Goodbye detected, will end after audio finishes")
-                        self.goodbye_detected = True
 
         elif t == "response.created":
             self.current_transcript = ""
@@ -556,13 +553,6 @@ class AudioBridge:
             idle_ai = (now - self.realtime.last_ai_audio_ts) > IDLE_LIMIT
             idle_user = (now - self.realtime.last_user_speech_ts) > IDLE_LIMIT
 
-            # Check if goodbye was detected and audio has finished
-            if self.realtime.goodbye_detected:
-                audio_finished = (now - self.realtime.last_audio_chunk_time) > 2.0  # 2 seconds after last audio
-                if audio_finished:
-                    log_info("[CONVERSATION] Goodbye audio finished, ending call")
-                    self.realtime.conversation_active = False
-                    break
 
             if self.realtime.closing and idle_ai and idle_user:
                 log_info("[WATCHDOG] Mutual silence detected, ending call")
