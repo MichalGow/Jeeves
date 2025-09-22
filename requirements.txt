@@ -1,0 +1,16 @@
+# Core dependencies
+python-dotenv==1.1.1
+numpy==2.3.3
+
+# OpenAI Realtime API
+openai==1.108.0
+websockets==15.0.1
+
+# SIP and Audio
+pjsua2==2.15.dev0
+
+# Twilio
+twilio==9.8.1
+
+# HTTP requests (for recording downloads)
+requests==2.32.5

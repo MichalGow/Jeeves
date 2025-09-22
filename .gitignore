@@ -1,0 +1,9 @@
+/.env
+/.venv
+
+# Keep directory structure but ignore contents (except .gitkeep)
+/calls/*
+!/calls/.gitkeep
+
+/recordings/*
+!/recordings/.gitkeep
